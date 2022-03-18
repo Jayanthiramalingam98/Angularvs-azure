@@ -1,28 +1,56 @@
-# Angular8SpringbootClient
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.0.1.
+name: Build and deploy Node.js app to Azure Web App - angular8-springboot
 
-## Development server
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+jobs:
+  build:
+    runs-on: windows-latest
 
-## Code scaffolding
+    steps:
+      - uses: actions/checkout@v2
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+      - name: Set up Node.js version
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16.x'
 
-## Build
+      - name: npm install, build, and test
+        run: |
+          npm install
+          npm run build --if-present
+          npm run test --if-present
+      
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v2
+        with:
+          name: node-app
+          path: .
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
-## Running unit tests
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v2
+        with:
+          name: node-app
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
- 
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v2
+        id: deploy-to-webapp
+        with:
+          app-name: 'angular8-springboot'
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AzureAppService_PublishProfile_24159e7d4acf47b890a28d5b8fbf7729 }}
+          package: .
